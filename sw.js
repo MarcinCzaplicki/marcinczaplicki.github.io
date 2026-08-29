@@ -1,4 +1,7 @@
-const CACHE_NAME = "compendium-shell-v1";
+// Cache name tied to a version string — bump SW_VERSION on every deploy so
+// old caches are dropped automatically and clients pick up fresh files fast.
+const SW_VERSION = "v0.1";
+const CACHE_NAME = `compendium-shell-${SW_VERSION}`;
 const SHELL_FILES = [
   "./",
   "./index.html",
@@ -23,25 +26,26 @@ self.addEventListener("activate", (event) => {
   );
 });
 
+// Network-first for the app shell: always serve the freshest bundle.js /
+// index.html when online, so a new deploy shows up on the very next load.
+// Cache is only used as an offline fallback, and is refreshed after every
+// successful network fetch.
 self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
 
-  // Never intercept cross-origin calls (the Anthropic API, Google fonts, search links, etc.)
+  // Never intercept cross-origin calls (the Anthropic/Gemini APIs, fonts, search links, etc.)
   if (url.origin !== self.location.origin) return;
   if (event.request.method !== "GET") return;
 
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      const network = fetch(event.request)
-        .then((response) => {
-          if (response && response.status === 200) {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-          }
-          return response;
-        })
-        .catch(() => cached);
-      return cached || network;
-    })
+    fetch(event.request, { cache: "no-store" })
+      .then((response) => {
+        if (response && response.status === 200) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+        }
+        return response;
+      })
+      .catch(() => caches.match(event.request))
   );
 });
