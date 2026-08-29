@@ -1,6 +1,6 @@
 // Cache name tied to a version string — bump SW_VERSION on every deploy so
 // old caches are dropped automatically and clients pick up fresh files fast.
-const SW_VERSION = "v0.1";
+const SW_VERSION = "v0.2";
 const CACHE_NAME = `compendium-shell-${SW_VERSION}`;
 const SHELL_FILES = [
   "./",
